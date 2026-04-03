@@ -2,13 +2,21 @@ import OpenAI from "openai";
 import { NextResponse } from "next/server";
 
 export async function POST(req) {
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   try {
-    const { word1, word2 } = await req.json();
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+    }
+
+    const { word1, word2 } = body;
 
     if (!word1?.trim() || !word2?.trim()) {
       return NextResponse.json({ error: "Two words required." }, { status: 400 });
     }
+
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -28,10 +36,18 @@ The words can appear literally or thematically. The more unexpected the connecti
       max_tokens: 600,
     });
 
-    const story = completion.choices[0].message.content;
+    const story = completion.choices?.[0]?.message?.content;
+
+    if (!story) {
+      return NextResponse.json(
+        { error: "No story came back. The muse is unavailable." },
+        { status: 502 }
+      );
+    }
+
     return NextResponse.json({ story });
   } catch (err) {
-    console.error(err);
+    console.error("Story generation error:", err);
     return NextResponse.json(
       { error: "Story generation failed. The universe is clearly not cooperating." },
       { status: 500 }

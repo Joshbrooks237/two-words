@@ -16,6 +16,10 @@ export async function POST(req) {
       return NextResponse.json({ error: "Two words required." }, { status: 400 });
     }
 
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json({ error: "Missing OPENAI_API_KEY environment variable." }, { status: 500 });
+    }
+
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
     const completion = await openai.chat.completions.create({
@@ -49,7 +53,7 @@ The words can appear literally or thematically. The more unexpected the connecti
   } catch (err) {
     console.error("Story generation error:", err);
     return NextResponse.json(
-      { error: "Story generation failed. The universe is clearly not cooperating." },
+      { error: err?.message || "Story generation failed. The universe is clearly not cooperating." },
       { status: 500 }
     );
   }
